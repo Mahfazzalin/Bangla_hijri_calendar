@@ -44,7 +44,7 @@ function getHijriDate(date, offsetDays = 0) {
     if (d.getHours() >= 18) {
         d.setDate(d.getDate() + 1);
     }
-    d.setDate(d.getDate() + offsetDays);
+    d.setDate(d.getDate() + 1 + (parseInt(offsetDays) || 0));
 
     const gYear = d.getFullYear();
     const gMonth = d.getMonth() + 1;

@@ -130,13 +130,13 @@ function banglaToGregorian(bYear, bMonth, bDay) {
     return gDate;
 }
 
-// Calculate Hijri date (calibrated for Bangladesh + user offset)
+// Calculate Hijri date (calibrated for Bangladesh + 1 day adjustment + user offset)
 function getHijriDate(date, offsetDays = 0) {
     const d = new Date(date);
     if (d.getHours() >= 18) {
         d.setDate(d.getDate() + 1);
     }
-    d.setDate(d.getDate() + offsetDays);
+    d.setDate(d.getDate() + 1 + (parseInt(offsetDays) || 0));
 
     const gYear = d.getFullYear();
     const gMonth = d.getMonth() + 1;
@@ -174,27 +174,35 @@ function getHijriDate(date, offsetDays = 0) {
     };
 }
 
-// Convert Hijri date to Gregorian Date
+// Convert Hijri date to Gregorian Date (precise inverse of getHijriDate)
 function hijriToGregorian(hYear, hMonth, hDay, offsetDays = 0) {
-    const n = hDay + Math.ceil(29.5 * hMonth) + (hYear - 1) * 354 +
-              Math.floor((3 + (11 * hYear)) / 30) + 227014 - 1;
-    const jd = n + 1948440 - 386;
+    offsetDays = parseInt(offsetDays) || 0;
+    const approxGYear = Math.round(hYear * 0.970229 + 621.57);
+    let testDate = new Date(approxGYear, hMonth, 15, 12, 0, 0);
     
-    // Julian Day to Gregorian
-    let l = jd + 68569;
-    let n1 = Math.floor((4 * l) / 146097);
-    l = l - Math.floor((146097 * n1 + 3) / 4);
-    let i = Math.floor((4000 * (l + 1)) / 1461001);
-    l = l - Math.floor((1461 * i) / 4) + 31;
-    let j = Math.floor((80 * l) / 2447);
-    let d = l - Math.floor((2447 * j) / 80);
-    l = Math.floor(j / 11);
-    let m = j + 2 - 12 * l;
-    let y = 100 * (n1 - 49) + i + l;
+    for (let iter = 0; iter < 5; iter++) {
+        let h = getHijriDate(testDate, offsetDays);
+        let diff = (hYear - h.year) * 354.367 + (hMonth - h.month) * 29.53 + (hDay - h.day);
+        let shift = Math.round(diff);
+        if (shift === 0) break;
+        testDate.setTime(testDate.getTime() + shift * 86400000);
+    }
 
-    const res = new Date(y, m - 1, d, 12, 0, 0);
-    res.setDate(res.getDate() - offsetDays);
-    return res;
+    let bestDate = new Date(testDate);
+    let minDiff = 999;
+    for (let delta = -4; delta <= 4; delta++) {
+        let cand = new Date(testDate.getTime() + delta * 86400000);
+        let h = getHijriDate(cand, offsetDays);
+        if (h.year === hYear && h.month === hMonth && h.day === hDay) {
+            return cand;
+        }
+        let d = Math.abs((hYear - h.year) * 355 + (hMonth - h.month) * 30 + (hDay - h.day));
+        if (d < minDiff) {
+            minDiff = d;
+            bestDate = cand;
+        }
+    }
+    return bestDate;
 }
 
 // ==========================================
@@ -741,7 +749,7 @@ function renderBanglaGrid(grid) {
     for (let day = 1; day <= totalDays; day++) {
         const cell = document.createElement('div');
         const dayOfWeek = (startDayOfWeek + day - 1) % 7;
-        cell.className = `cal-cell date ${dayOfWeek === 5 ? 'friday' : ''}`;
+        cell.className = `cal-cell date ${dayOfWeek === 5 ? 'friday' : ''} ${day < 10 ? 'single-digit' : ''}`;
 
         const isToday = (todayBangla.year === state.calYear &&
                          todayBangla.month === state.calMonth &&
@@ -800,7 +808,16 @@ function renderHijriGrid(grid) {
 
     const gStartDate = hijriToGregorian(state.calYear, state.calMonth, 1, state.hijriOffset);
     const startDayOfWeek = gStartDate.getDay();
-    const totalDays = (state.calMonth % 2 === 0) ? 30 : 29;
+    
+    // Check if 30th day exists in this Hijri month
+    let totalDays = 29;
+    const gDate30 = hijriToGregorian(state.calYear, state.calMonth, 30, state.hijriOffset);
+    const hDate30 = getHijriDate(gDate30, state.hijriOffset);
+    if (hDate30.month === state.calMonth && hDate30.day === 30) {
+        totalDays = 30;
+    } else if (state.calMonth % 2 === 0) {
+        totalDays = 30;
+    }
 
     const todayHijri = getHijriDate(state.today, state.hijriOffset);
 
@@ -813,7 +830,7 @@ function renderHijriGrid(grid) {
     for (let day = 1; day <= totalDays; day++) {
         const cell = document.createElement('div');
         const dayOfWeek = (startDayOfWeek + day - 1) % 7;
-        cell.className = `cal-cell date ${dayOfWeek === 5 ? 'friday' : ''}`;
+        cell.className = `cal-cell date ${dayOfWeek === 5 ? 'friday' : ''} ${day < 10 ? 'single-digit' : ''}`;
 
         const isToday = (todayHijri.year === state.calYear &&
                          todayHijri.month === state.calMonth &&
@@ -922,15 +939,28 @@ function renderPrayerTimes() {
     const prayer = calculatePrayerTimes(state.today, state.district);
     const waqtStatus = getWaqtStatus(prayer);
 
-    document.getElementById('timeSehriEnd').textContent = prayer.sehriEnd;
-    document.getElementById('timeSunrise').textContent = prayer.sunrise;
-    document.getElementById('timeIftar').textContent = prayer.maghrib;
+    const setElem = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
 
-    document.getElementById('timeFajr').textContent = prayer.fajr;
-    document.getElementById('timeDhuhr').textContent = prayer.dhuhr;
-    document.getElementById('timeAsr').textContent = prayer.asr;
-    document.getElementById('timeMaghrib').textContent = prayer.maghrib;
-    document.getElementById('timeIsha').textContent = prayer.isha;
+    setElem('timeSehriEnd', prayer.sehriEnd);
+    setElem('timeSunrise', prayer.sunrise);
+    setElem('timeIftar', prayer.maghrib);
+
+    // Waqt Start Times (Larger font)
+    setElem('timeFajr', prayer.fajr);
+    setElem('timeDhuhr', prayer.dhuhr);
+    setElem('timeAsr', prayer.asr);
+    setElem('timeMaghrib', prayer.maghrib);
+    setElem('timeIsha', prayer.isha);
+
+    // Waqt End Times (Smaller font below start time)
+    setElem('timeFajrEnd', `শেষ: ${prayer.sunrise}`);
+    setElem('timeDhuhrEnd', `শেষ: ${prayer.asr}`);
+    setElem('timeAsrEnd', `শেষ: ${prayer.maghrib}`);
+    setElem('timeMaghribEnd', `শেষ: ${prayer.isha}`);
+    setElem('timeIshaEnd', `শেষ: ${prayer.fajr}`);
 
     // Highlight active Waqt card
     document.querySelectorAll('.prayer-card').forEach(c => c.classList.remove('active-waqt'));
