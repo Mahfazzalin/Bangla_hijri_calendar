@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>বাংলা ও হিজরি ক্যালেন্ডার</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="brand">
+            <span class="brand-icon">🌙</span>
+            <span class="brand-title">বাংলা ও হিজরি ক্যালেন্ডার</span>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" id="copyDateBtn" title="আজকের তারিখ কপি করুন">
+                <span>📋</span> <span>কপি</span>
+            </button>
+            <button class="header-btn rate-btn-header" id="quickRateBtn" title="আমাদের রেটিং দিন">
+                <span>⭐</span> <span>রিভিউ</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Tab Bar -->
+    <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="tabHome">
+            <span class="tab-icon">🏠</span>
+            <span>আজকের দিন</span>
+        </button>
+        <button class="tab-btn" data-tab="tabCalendar">
+            <span class="tab-icon">🗓️</span>
+            <span>ক্যালেন্ডার</span>
+        </button>
+        <button class="tab-btn" data-tab="tabPrayer">
+            <span class="tab-icon">🕌</span>
+            <span>নামাজ</span>
+        </button>
+        <button class="tab-btn" data-tab="tabEvents">
+            <span class="tab-icon">📝</span>
+            <span>ইভেন্টস</span>
+        </button>
+        <button class="tab-btn" data-tab="tabSettings">
+            <span class="tab-icon">⚙️</span>
+            <span>সেটিংস</span>
+        </button>
+    </nav>
+
+    <!-- TAB 1: HOME (আজকের দিন) -->
+    <main id="tabHome" class="tab-content active">
+        <!-- Special Holiday Alert (if applicable today) -->
+        <div id="todayHolidayBanner" class="holiday-banner">
+            <span class="holiday-banner-icon">🎉</span>
+            <div class="holiday-banner-title" id="todayHolidayText">আজকের বিশেষ দিবস</div>
+        </div>
+
+        <!-- Hero Date Card -->
+        <div class="hero-date-card">
+            <!-- Bangla Date -->
+            <div class="date-row">
+                <div>
+                    <span class="date-badge bangla">🇧🇩 বাংলা তারিখ</span>
+                    <div class="date-value-large" id="homeBanglaDate">লোড হচ্ছে...</div>
+                </div>
+                <span class="date-badge season" id="homeSeasonBadge">ঋতু</span>
+            </div>
+
+            <!-- Hijri Date -->
+            <div class="date-row">
+                <div>
+                    <span class="date-badge hijri">☪️ হিজরি তারিখ</span>
+                    <div class="date-value-large" id="homeHijriDate">লোড হচ্ছে...</div>
+                </div>
+            </div>
+
+            <!-- Gregorian Date -->
+            <div class="date-row">
+                <div class="gregorian-text" id="homeGregorianDate">লোড হচ্ছে...</div>
+            </div>
+        </div>
+
+        <!-- Prayer Mini Bar in Home -->
+        <div class="prayer-mini-card" id="homePrayerCard" style="cursor: pointer;" title="পূর্ণ নামাজের সময়সূচি দেখতে ক্লিক করুন">
+            <div class="prayer-mini-left">
+                <span class="prayer-mini-icon">🕌</span>
+                <div>
+                    <div class="prayer-mini-label">চলতি ওয়াক্ত</div>
+                    <div class="prayer-mini-name" id="homeCurrentWaqt">যোহর</div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div class="prayer-mini-time" id="homeNextWaqtTime">--:--</div>
+                <div class="prayer-mini-countdown" id="homeNextWaqtCountdown">পরবর্তী ওয়াক্ত বাকি: --</div>
+            </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="quick-grid">
+            <button class="quick-action-btn" id="btnGoToCalendar">
+                <span>🗓️</span> <span>পূর্ণ ক্যালেন্ডার</span>
+            </button>
+            <button class="quick-action-btn" id="btnGoToPrayer">
+                <span>🕌</span> <span>নামাজের ওয়াক্ত</span>
+            </button>
+        </div>
+
+        <!-- Historical Events Card -->
+        <div class="history-card" id="historyCardSection">
+            <div class="history-card-header">
+                <div class="history-card-title">
+                    <span id="historyIcon">📜</span>
+                    <span id="historyTypeTitle">আজকের ইতিহাস</span>
+                </div>
+                <div class="history-nav">
+                    <button class="history-nav-btn" id="prevHistoryBtn" title="পূর্ববর্তী তথ্য">◀</button>
+                    <button class="history-nav-btn" id="nextHistoryBtn" title="পরবর্তী তথ্য">▶</button>
+                </div>
+            </div>
+            <div class="history-content">
+                <div class="history-text" id="historyText">তথ্য লোড হচ্ছে...</div>
+            </div>
+            <div class="history-footer">
+                <span id="historyIndexIndicator">১/৩</span>
+                <a class="history-report-link" id="reportHistoryBtn">ভুল তথ্য রিপোর্ট</a>
+            </div>
+        </div>
+
+        <!-- Gentle Review Banner (if not reviewed yet) -->
+        <div id="homeReviewPrompt" class="card" style="display: none; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); text-align: center; padding: 12px;">
+            <div style="font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">এক্সটেনশনটি কেমন লাগছে? ⭐</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">একটি মূল্যবান রেটিং দিয়ে আমাদের কাজকে সমর্থন করুন!</div>
+            <button class="review-cta-btn" id="promptReviewBtn" style="padding: 6px 12px; font-size: 12px;">রেটিং দিন ⭐</button>
+        </div>
+    </main>
+
+    <!-- TAB 2: CALENDAR (ক্যালেন্ডার) -->
+    <main id="tabCalendar" class="tab-content">
+        <!-- Switch between Bangla & Hijri Calendar -->
+        <div class="calendar-switch-tabs">
+            <button class="cal-switch-btn active" id="btnSwitchBangla">বাংলা ক্যালেন্ডার</button>
+            <button class="cal-switch-btn" id="btnSwitchHijri">হিজরি ক্যালেন্ডার</button>
+        </div>
+
+        <!-- Calendar Month Navigator -->
+        <div class="calendar-top-nav">
+            <button class="cal-nav-btn" id="calPrevMonth" title="আগের মাস">◀</button>
+            <div class="current-month-display">
+                <div class="current-month-title" id="calMonthYearTitle">বৈশাখ ১৪৩৩</div>
+                <button class="today-jump-btn" id="calJumpTodayBtn">আজকের দিনে যান</button>
+            </div>
+            <button class="cal-nav-btn" id="calNextMonth" title="পরের মাস">▶</button>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="calendar-grid-box">
+            <div class="calendar-grid" id="mainCalendarGrid">
+                <!-- Days will be dynamically injected here -->
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="calendar-legend">
+            <div class="legend-item">
+                <span class="legend-dot today"></span>
+                <span>আজকের দিন</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot holiday"></span>
+                <span>ছুটি / বিশেষ দিবস</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot event"></span>
+                <span>আপনার ইভেন্ট</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- TAB 3: PRAYER (নামাজের সময়সূচি) -->
+    <main id="tabPrayer" class="tab-content">
+        <div class="prayer-district-row">
+            <span style="font-size: 13px; font-weight: 600;">বিভাগ / জেলা:</span>
+            <select class="form-select-sm" id="prayerDistrictSelect">
+                <option value="dhaka">ঢাকা (Dhaka)</option>
+                <option value="chattogram">চট্টগ্রাম (Chattogram)</option>
+                <option value="sylhet">সিলেট (Sylhet)</option>
+                <option value="rajshahi">রাজশাহী (Rajshahi)</option>
+                <option value="khulna">খুলনা (Khulna)</option>
+                <option value="barishal">বরিশাল (Barishal)</option>
+                <option value="rangpur">রংপুর (Rangpur)</option>
+                <option value="mymensingh">ময়মনসিংহ (Mymensingh)</option>
+            </select>
+        </div>
+
+        <!-- Sehri & Iftar Banner -->
+        <div class="sehri-iftar-banner">
+            <div class="sehri-iftar-box">
+                <div class="sehri-iftar-label">🌙 সেহরি শেষ</div>
+                <div class="sehri-iftar-val" id="timeSehriEnd">--:--</div>
+            </div>
+            <div class="sehri-iftar-box">
+                <div class="sehri-iftar-label">☀️ সূর্যোদয়</div>
+                <div class="sehri-iftar-val" id="timeSunrise">--:--</div>
+            </div>
+            <div class="sehri-iftar-box">
+                <div class="sehri-iftar-label">✨ ইফতার / মাগরিব</div>
+                <div class="sehri-iftar-val" id="timeIftar">--:--</div>
+            </div>
+        </div>
+
+        <!-- 5 Waqt Grid -->
+        <div class="prayer-grid">
+            <div class="prayer-card" id="cardFajr">
+                <div class="prayer-card-header">
+                    <span class="prayer-name">ফজর</span>
+                    <span class="active-pill">চলতি</span>
+                </div>
+                <div class="prayer-time" id="timeFajr">--:--</div>
+                <div class="prayer-sub">সেহরি শেষ পর্যন্ত</div>
+            </div>
+
+            <div class="prayer-card" id="cardDhuhr">
+                <div class="prayer-card-header">
+                    <span class="prayer-name">যোহর</span>
+                    <span class="active-pill">চলতি</span>
+                </div>
+                <div class="prayer-time" id="timeDhuhr">--:--</div>
+                <div class="prayer-sub">দ্বিপ্রহরের পর</div>
+            </div>
+
+            <div class="prayer-card" id="cardAsr">
+                <div class="prayer-card-header">
+                    <span class="prayer-name">আসর (হানাফি)</span>
+                    <span class="active-pill">চলতি</span>
+                </div>
+                <div class="prayer-time" id="timeAsr">--:--</div>
+                <div class="prayer-sub">বিকেলের নামাজ</div>
+            </div>
+
+            <div class="prayer-card" id="cardMaghrib">
+                <div class="prayer-card-header">
+                    <span class="prayer-name">মাগরিব</span>
+                    <span class="active-pill">চলতি</span>
+                </div>
+                <div class="prayer-time" id="timeMaghrib">--:--</div>
+                <div class="prayer-sub">সূর্যাস্তের পর</div>
+            </div>
+
+            <div class="prayer-card" id="cardIsha" style="grid-column: span 2;">
+                <div class="prayer-card-header">
+                    <span class="prayer-name">ইশা</span>
+                    <span class="active-pill">চলতি</span>
+                </div>
+                <div class="prayer-time" id="timeIsha">--:--</div>
+                <div class="prayer-sub">রাত্রিকালীন সালাত</div>
+            </div>
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted); text-align: center;">
+            * ইসলামিক ফাউন্ডেশন বাংলাদেশ অনুযায়ী হিসাবকৃত। স্থানীয় মসজিদের সাথে ১-২ মিনিট এদিক সেদিক হতে পারে।
+        </div>
+    </main>
+
+    <!-- TAB 4: EVENTS (ইভেন্টস ও রিমাইন্ডার) -->
+    <main id="tabEvents" class="tab-content">
+        <div class="events-header-row">
+            <span style="font-size: 14px; font-weight: 700;">আপনার ইভেন্টসমূহ</span>
+            <button class="btn-primary-sm" id="btnOpenAddEvent">
+                <span>+</span> <span>নতুন ইভেন্ট</span>
+            </button>
+        </div>
+
+        <!-- Events List Container -->
+        <div id="eventsListContainer">
+            <!-- Injected via JS -->
+        </div>
+    </main>
+
+    <!-- TAB 5: SETTINGS & REVIEW (সেটিংস ও রিভিউ) -->
+    <main id="tabSettings" class="tab-content">
+        <!-- Interactive Review Card -->
+        <div class="review-card">
+            <div class="review-card-title">আমাদের এক্সটেনশনটি কেমন লেগেছে? ⭐</div>
+            <div class="review-card-sub">আপনার একটি ভালো রেটিং আমাদের আরও উন্নত করতে সাহায্য করবে</div>
+            
+            <div class="stars-rating-box" id="starsRatingBox">
+                <button class="star-btn" data-star="1">★</button>
+                <button class="star-btn" data-star="2">★</button>
+                <button class="star-btn" data-star="3">★</button>
+                <button class="star-btn" data-star="4">★</button>
+                <button class="star-btn" data-star="5">★</button>
+            </div>
+
+            <div id="reviewHighRatingBox" style="display: none;">
+                <p style="font-size: 12px; color: #a7f3d0; margin-bottom: 10px;">
+                    আপনার প্রশংসার জন্য অনেক ধন্যবাদ! অনুগ্রহ করে Chrome Web Store-এ একটি ৫-স্টার রিভিউ দিন।
+                </p>
+                <button class="review-cta-btn" id="btnOpenWebStoreReview">
+                    <span>⭐</span> <span>Chrome Web Store-এ ৫-স্টার রিভিউ দিন</span>
+                </button>
+            </div>
+
+            <div id="reviewLowRatingBox" class="feedback-form-box">
+                <p style="font-size: 12px; color: #fecdd3; margin-bottom: 6px;">
+                    আমরা আন্তরিকভাবে দুঃখিত! আপনার কী সমস্যা হয়েছে জানালে আমরা দ্রুত সমাধান করব:
+                </p>
+                <textarea class="feedback-textarea" id="feedbackMessageInput" placeholder="আপনার সমস্যা বা পরামর্শ এখানে লিখুন..."></textarea>
+                <button class="btn-primary-sm" id="btnSubmitFeedback" style="width: 100%; justify-content: center;">
+                    ফিডব্যাক পাঠান
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="settings-section-title">ক্যালেন্ডার ও প্রদর্শন সেটিংস</div>
+            
+            <!-- Hijri Adjustment -->
+            <div class="settings-row">
+                <div>
+                    <div class="settings-label">হিজরি তারিখ সমন্বয়</div>
+                    <div class="settings-desc">চাঁদ দেখার পার্থক্যের জন্য দিন পরিবর্তন</div>
+                </div>
+                <select class="form-select-sm" id="settingHijriOffset">
+                    <option value="-2">-২ দিন</option>
+                    <option value="-1">-১ দিন</option>
+                    <option value="0" selected>স্বাভাবিক (০ দিন)</option>
+                    <option value="1">+১ দিন</option>
+                    <option value="2">+২ দিন</option>
+                </select>
+            </div>
+
+            <!-- Badge Type -->
+            <div class="settings-row">
+                <div>
+                    <div class="settings-label">আইকন ব্যাজ প্রদর্শন</div>
+                    <div class="settings-desc">ব্রাউজার আইকনে প্রদর্শিত তারিখ</div>
+                </div>
+                <select class="form-select-sm" id="settingBadgeType">
+                    <option value="bangla" selected>বাংলা তারিখ</option>
+                    <option value="hijri">হিজরি তারিখ</option>
+                    <option value="off">বন্ধ রাখুন</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Developer Info -->
+        <div class="card" style="text-align: center; font-size: 12px; color: var(--text-secondary);">
+            <div style="font-weight: 700; color: #ffffff; margin-bottom: 4px;">Bangla & Hijri Calendar v2.0</div>
+            <div style="margin-bottom: 6px;">তৈরি করেছেন: মাহফুজ আলিন</div>
+            <div style="color: var(--text-muted); font-size: 11px;">যোগাযোগ: mahfazzalin1@gmail.com</div>
+        </div>
+    </main>
+
+    <!-- MODAL: ADD / EDIT EVENT -->
+    <div id="eventModal" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title" id="eventModalTitle">নতুন ইভেন্ট যোগ করুন</div>
+                <button class="modal-close-btn" id="btnCloseEventModal">×</button>
+            </div>
+
+            <form id="eventForm">
+                <div class="form-group">
+                    <label class="form-label">ইভেন্টের নাম *</label>
+                    <input type="text" class="form-input" id="formEventTitle" placeholder="যেমন: জন্মদিন, মিটিং বা ইবাদত" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">বিবরণ (ঐচ্ছিক)</label>
+                    <textarea class="form-textarea" id="formEventDesc" placeholder="ইভেন্টের বিস্তারিত তথ্য..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">তারিখ *</label>
+                    <input type="date" class="form-input" id="formEventDate" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">সময়</label>
+                    <input type="time" class="form-input" id="formEventTime" value="09:00">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">রিমাইন্ডার নোটিফিকেশন</label>
+                    <select class="form-select" id="formEventReminder">
+                        <option value="0">রিমাইন্ডার নেই</option>
+                        <option value="5">৫ মিনিট আগে</option>
+                        <option value="15">১৫ মিনিট আগে</option>
+                        <option value="30" selected>৩০ মিনিট আগে</option>
+                        <option value="60">১ ঘণ্টা আগে</option>
+                        <option value="1440">১ দিন আগে</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-primary-sm" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px; margin-top: 10px;">
+                    সংরক্ষণ করুন
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DATE DETAILS (Click date in calendar) -->
+    <div id="dateDetailsModal" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title" id="detailDateHeaderTitle">তারিখের বিবরণ</div>
+                <button class="modal-close-btn" id="btnCloseDateDetails">×</button>
+            </div>
+
+            <!-- Date conversions for that selected day -->
+            <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 12px;">
+                <div style="font-size: 14px; font-weight: 700; color: #34d399; margin-bottom: 4px;" id="detailBanglaDate">--</div>
+                <div style="font-size: 13px; font-weight: 600; color: #fbbf24; margin-bottom: 4px;" id="detailHijriDate">--</div>
+                <div style="font-size: 12px; color: var(--text-secondary);" id="detailGregorianDate">--</div>
+            </div>
+
+            <!-- Holidays on that day -->
+            <div id="detailHolidaysSection" style="display: none; margin-bottom: 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">বিশেষ দিবস / ছুটি:</div>
+                <div id="detailHolidaysList" style="font-size: 13px; color: #ffffff; background: rgba(245, 158, 11, 0.15); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3);"></div>
+            </div>
+
+            <!-- Events on that day -->
+            <div style="margin-bottom: 14px;">
+                <div style="font-size: 12px; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">এই তারিখের ইভেন্টসমূহ:</div>
+                <div id="detailEventsList">
+                    <!-- Events injected here -->
+                </div>
+            </div>
+
+            <button class="btn-primary-sm" id="btnQuickAddEventFromDate" style="width: 100%; justify-content: center;">
+                + এই তারিখে ইভেন্ট যোগ করুন
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Alert Container -->
+    <div id="toastMsg" class="toast-msg">তারিখ কপি করা হয়েছে!</div>
+
+    <!-- Scripts -->
+    <script src="history-data.js"></script>
+    <script src="holidays-data.js"></script>
+    <script src="calendar.js"></script>
+</body>
+</html>
