@@ -127,6 +127,22 @@
             </div>
         </div>
 
+        <!-- Monthly Donation Reminder Banner -->
+        <div id="homeDonationPrompt" class="donation-reminder-banner" style="display: none;">
+            <div class="donation-reminder-top">
+                <div class="donation-reminder-icon">💝</div>
+                <div class="donation-reminder-text-box">
+                    <div class="donation-reminder-title">মাসিক ডোনেশন রিমাইন্ডার</div>
+                    <div class="donation-reminder-desc">এক্সটেনশনটি ফ্রি ও নিয়মিত আপডেট রাখতে আপনার সামান্য আর্থিক সহায়তা আমাদের অনুপ্রেরণা।</div>
+                </div>
+                <button class="donation-reminder-close" id="btnDismissDonationBanner" title="এই মাসের জন্য বন্ধ করুন">✕</button>
+            </div>
+            <div class="donation-reminder-btns">
+                <button class="donation-banner-btn primary" id="btnBannerGoDonate">💝 ডোনেশন দিন</button>
+                <button class="donation-banner-btn secondary" id="btnBannerLaterDonate">পরে মনে করিয়ে দিন</button>
+            </div>
+        </div>
+
         <!-- Gentle Review Banner (if not reviewed yet) -->
         <div id="homeReviewPrompt" class="card" style="display: none; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); text-align: center; padding: 12px;">
             <div style="font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">এক্সটেনশনটি কেমন লাগছে? ⭐</div>
@@ -344,11 +360,68 @@
             </div>
         </div>
 
-        <!-- Developer Info -->
-        <div class="card" style="text-align: center; font-size: 12px; color: var(--text-secondary);">
-            <div style="font-weight: 700; color: #ffffff; margin-bottom: 4px;">Bangla & Hijri Calendar v2.0</div>
-            <div style="margin-bottom: 6px;">তৈরি করেছেন: মাহফুজ আলিন</div>
-            <div style="color: var(--text-muted); font-size: 11px;">যোগাযোগ: mahfazzalin1@gmail.com</div>
+        <!-- Donation Card (bKash, Nagad, Rocket) -->
+        <div class="card donation-card" id="donationCard">
+            <div class="donation-card-header">
+                <div class="donation-icon-bubble">💝</div>
+                <div>
+                    <div class="donation-title">উন্নয়নে হাদিয়া বা ডোনেশন দিন</div>
+                    <div class="donation-sub">এক্সটেনশনটি বিজ্ঞাপনমুক্ত ও সবার জন্য ফ্রি রাখতে আপনার সহায়তা একান্ত কাম্য</div>
+                </div>
+            </div>
+
+            <div class="donation-methods">
+                <div class="method-chip chip-bkash" title="বিকাশ পার্সোনাল">
+                    <span class="method-dot"></span> বিকাশ
+                </div>
+                <div class="method-chip chip-nagad" title="নগদ পার্সোনাল">
+                    <span class="method-dot"></span> নগদ
+                </div>
+                <div class="method-chip chip-rocket" title="রকেট পার্সোনাল">
+                    <span class="method-dot"></span> রকেট
+                </div>
+            </div>
+
+            <div class="donation-box">
+                <div class="donation-acc-details">
+                    <span class="donation-tag">পার্সোনাল নম্বর (Send Money)</span>
+                    <span class="donation-phone" id="donationPhoneNumber">01612925000</span>
+                </div>
+                <button class="btn-copy-donation" id="btnCopyDonationNumber" title="নম্বর কপি করুন">
+                    <span class="copy-icon-symbol">📋</span>
+                    <span id="copyDonationBtnText">কপি করুন</span>
+                </button>
+            </div>
+
+            <div class="donation-blessing-note">
+                ✨ যেকোনো পরিমাণ ডোনেশন সাদরে গৃহীত। জাযাকাল্লাহু খাইরান! 🤲
+            </div>
+        </div>
+
+        <!-- Error Report & Direct Contact Card -->
+        <div class="card report-info-card" id="reportInfoCard">
+            <div class="report-card-header">
+                <div class="report-icon-bubble">📩</div>
+                <div>
+                    <div class="report-card-title">ভুল তথ্য রিপোর্ট ও যোগাযোগ</div>
+                    <div class="report-card-sub">ক্যালেন্ডার, নামাজের সময় বা কোনো তথ্যে ভুল খুঁজে পেলে সরাসরি মেইল করুন</div>
+                </div>
+            </div>
+
+            <div class="report-email-container">
+                <div class="report-email-label">
+                    <span class="email-icon">✉️</span>
+                    <span class="email-text" id="reportEmailText">mahfazzalin1@gmail.com</span>
+                </div>
+                <div class="report-buttons-group">
+                    <button class="report-btn mail-action" id="btnSendReportEmail" title="সরাসরি ইমেইল পাঠান">
+                        <span>✉️</span> মেইল পাঠান
+                    </button>
+                    <button class="report-btn copy-action" id="btnCopyReportEmail" title="ইমেইল কপি করুন">
+                        <span>📋</span> কপি
+                    </button>
+                </div>
+            </div>
         </div>
     </main>
 

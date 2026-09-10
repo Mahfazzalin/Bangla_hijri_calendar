@@ -415,6 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initPrayerTimes();
         initEvents();
         initReviewSystem();
+        initDonationAndReportSystem();
         initQuickActions();
     });
 });
@@ -613,7 +614,10 @@ function initHistoryTicker() {
     document.getElementById('prevHistoryBtn').addEventListener('click', prevHistory);
     document.getElementById('nextHistoryBtn').addEventListener('click', nextHistory);
     document.getElementById('reportHistoryBtn').addEventListener('click', () => {
-        window.open('mailto:mahfazzalin1@gmail.com?subject=তথ্য সংশোধন প্রস্তাবনা - বাংলা ও হিজরি ক্যালেন্ডার');
+        const subject = encodeURIComponent('তথ্য সংশোধন প্রস্তাবনা - বাংলা ও হিজরি ক্যালেন্ডার');
+        const body = encodeURIComponent('আজকের তারিখ ও তথ্যের বিবরণ:\n\nভুল তথ্যের বিবরণ:\n\nসঠিক তথ্য:\n');
+        window.open(`mailto:mahfazzalin1@gmail.com?subject=${subject}&body=${body}`);
+        showToast('ইমেইল অ্যাপ ওপেন করা হচ্ছে... ✉️');
     });
 }
 
@@ -1246,6 +1250,117 @@ function initReviewSystem() {
     if (quickRateHeaderBtn) {
         quickRateHeaderBtn.addEventListener('click', () => {
             switchTab('tabSettings');
+        });
+    }
+}
+
+// ==========================================
+// DONATION & REPORTING SYSTEM
+// ==========================================
+
+function initDonationAndReportSystem() {
+    const DONATION_PHONE = '01612925000';
+    const REPORT_EMAIL = 'mahfazzalin1@gmail.com';
+
+    // 1. Monthly Donation Reminder Banner Logic
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['lastDonationReminderMonth'], (result) => {
+            const banner = document.getElementById('homeDonationPrompt');
+            if (!banner) return;
+
+            // Show once every calendar month
+            if (result.lastDonationReminderMonth !== currentMonthKey) {
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+        });
+    }
+
+    // Dismiss reminder for the rest of this month
+    const dismissBanner = () => {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+            chrome.storage.local.set({ lastDonationReminderMonth: currentMonthKey });
+        }
+        const banner = document.getElementById('homeDonationPrompt');
+        if (banner) banner.style.display = 'none';
+        showToast('পরের মাসে আবার মনে করিয়ে দেওয়া হবে। ধন্যবাদ! 🌸');
+    };
+
+    const closeBtn = document.getElementById('btnDismissDonationBanner');
+    if (closeBtn) closeBtn.addEventListener('click', dismissBanner);
+
+    const laterBtn = document.getElementById('btnBannerLaterDonate');
+    if (laterBtn) laterBtn.addEventListener('click', dismissBanner);
+
+    // Donate from banner
+    const bannerDonateBtn = document.getElementById('btnBannerGoDonate');
+    if (bannerDonateBtn) {
+        bannerDonateBtn.addEventListener('click', () => {
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ lastDonationReminderMonth: currentMonthKey });
+            }
+            const banner = document.getElementById('homeDonationPrompt');
+            if (banner) banner.style.display = 'none';
+
+            switchTab('tabSettings');
+            const donationCard = document.getElementById('donationCard');
+            if (donationCard) {
+                donationCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                donationCard.classList.remove('highlight-card');
+                void donationCard.offsetWidth; // Trigger reflow for animation
+                donationCard.classList.add('highlight-card');
+            }
+        });
+    }
+
+    // 2. Donation Number Copy Button (bKash, Nagad, Rocket)
+    const copyDonationBtn = document.getElementById('btnCopyDonationNumber');
+    if (copyDonationBtn) {
+        copyDonationBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(DONATION_PHONE).then(() => {
+                const btnText = document.getElementById('copyDonationBtnText');
+                if (btnText) {
+                    const original = btnText.textContent;
+                    btnText.textContent = 'কপি হয়েছে! ✓';
+                    setTimeout(() => {
+                        btnText.textContent = original;
+                    }, 2000);
+                }
+                showToast(`ডোনেশন নম্বর ${DONATION_PHONE} কপি করা হয়েছে! 📋`);
+            }).catch(() => {
+                showToast('নম্বর কপি করা সম্ভব হয়নি');
+            });
+        });
+    }
+
+    // 3. Error Report & Direct Email Actions
+    const sendMailBtn = document.getElementById('btnSendReportEmail');
+    if (sendMailBtn) {
+        sendMailBtn.addEventListener('click', () => {
+            const subject = encodeURIComponent('তথ্য সংশোধন প্রস্তাবনা - বাংলা ও হিজরি ক্যালেন্ডার');
+            const body = encodeURIComponent(
+                'তারিখ / নামাজের ওয়াক্ত / ইতিহাস:\n\n' +
+                'ভুল তথ্যের বিবরণ:\n\n' +
+                'সঠিক তথ্য (যদি জানা থাকে):\n\n' +
+                'ধন্যবাদ।'
+            );
+            window.open(`mailto:${REPORT_EMAIL}?subject=${subject}&body=${body}`);
+            showToast('ইমেইল পাঠানো হচ্ছে... ✉️');
+        });
+    }
+
+    const copyMailBtn = document.getElementById('btnCopyReportEmail');
+    if (copyMailBtn) {
+        copyMailBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(REPORT_EMAIL).then(() => {
+                showToast(`ইমেইল ${REPORT_EMAIL} কপি করা হয়েছে! 📋`);
+            }).catch(() => {
+                showToast('ইমেইল কপি করা সম্ভব হয়নি');
+            });
         });
     }
 }
