@@ -995,10 +995,63 @@ function initEvents() {
     document.getElementById('btnOpenAddEvent').addEventListener('click', () => openEventModal());
     document.getElementById('btnCloseEventModal').addEventListener('click', closeEventModal);
 
+    const testNotifBtn = document.getElementById('btnTestEventNotification');
+    if (testNotifBtn) {
+        testNotifBtn.addEventListener('click', testNotificationAndSound);
+    }
+
     document.getElementById('eventForm').addEventListener('submit', (e) => {
         e.preventDefault();
         saveEvent();
     });
+}
+
+// Web Audio Chime Player for immediate in-popup sound
+function playWebAudioChime() {
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
+
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
+        const now = ctx.currentTime;
+        const notes = [
+            { freq: 659.25, start: 0, dur: 0.28 },
+            { freq: 880.00, start: 0.18, dur: 0.65 }
+        ];
+
+        notes.forEach(note => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(note.freq, now + note.start);
+
+            gain.gain.setValueAtTime(0.001, now + note.start);
+            gain.gain.exponentialRampToValueAtTime(0.35, now + note.start + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + note.dur);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now + note.start);
+            osc.stop(now + note.start + note.dur);
+        });
+    } catch (e) {
+        console.warn('Audio chime warning:', e);
+    }
+}
+
+// Test notification and sound trigger
+function testNotificationAndSound() {
+    playWebAudioChime();
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ action: 'test_notification' });
+    }
+    showToast('টেস্ট নোটিফিকেশন ও অ্যালার্ম বাজানো হয়েছে! 🔔');
 }
 
 function loadEvents() {
@@ -1017,7 +1070,10 @@ function saveEvent() {
 
     if (!title || !dateStr) return;
 
-    const eventDate = new Date(dateStr + 'T' + timeStr);
+    // Parse date safely in local timezone
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const [hour, min] = timeStr.split(':').map(Number);
+    const eventDate = new Date(year, month - 1, day, hour || 0, min || 0, 0);
     const eventTimeMs = eventDate.getTime();
 
     const eventItem = {
@@ -1041,17 +1097,30 @@ function saveEvent() {
         state.events.push(eventItem);
     }
 
-    // Schedule notification alarm
-    if (reminder > 0 && eventTimeMs > Date.now()) {
-        const alarmTime = eventTimeMs - (reminder * 60 * 1000);
-        if (alarmTime > Date.now()) {
+    // Clear any existing alarm for this event id
+    chrome.alarms.clear(`event_${eventItem.id}`);
+
+    // Schedule notification alarm if reminder is not disabled (-1)
+    if (reminder >= 0) {
+        let alarmTime = eventTimeMs - (reminder * 60 * 1000);
+        const now = Date.now();
+
+        // If reminder time has already passed but event is still in the future:
+        if (alarmTime <= now && eventTimeMs > now) {
+            // Alert at event time or immediately if event is within 1 minute
+            alarmTime = Math.max(now + 1500, eventTimeMs);
+        }
+
+        if (alarmTime > now) {
             chrome.alarms.create(`event_${eventItem.id}`, { when: alarmTime });
             chrome.storage.local.set({
                 [`alarm_event_${eventItem.id}`]: {
                     id: eventItem.id,
                     title: eventItem.title,
                     description: eventItem.description,
-                    time: eventItem.time
+                    time: eventItem.time,
+                    reminderMinutes: reminder,
+                    targetTime: alarmTime
                 }
             });
         }
@@ -1061,7 +1130,7 @@ function saveEvent() {
         renderEventsList();
         updateCalendarGrid();
         closeEventModal();
-        showToast('ইভেন্ট সফলভাবে সংরক্ষিত হয়েছে');
+        showToast('ইভেন্ট ও রিমাইন্ডার সফলভাবে সংরক্ষিত হয়েছে 🔔');
     });
 }
 
@@ -1091,15 +1160,23 @@ function openEventModal(eventId = null, defaultDateStr = null) {
             document.getElementById('formEventDesc').value = ev.description || '';
             document.getElementById('formEventDate').value = ev.gregorianDate;
             document.getElementById('formEventTime').value = ev.time;
-            document.getElementById('formEventReminder').value = ev.reminderMinutes;
+            document.getElementById('formEventReminder').value = ev.reminderMinutes !== undefined ? ev.reminderMinutes : '0';
         }
     } else {
         titleHeader.textContent = 'নতুন ইভেন্ট যোগ করুন';
         document.getElementById('formEventTitle').value = '';
         document.getElementById('formEventDesc').value = '';
-        document.getElementById('formEventDate').value = defaultDateStr || state.today.toISOString().split('T')[0];
-        document.getElementById('formEventTime').value = '09:00';
-        document.getElementById('formEventReminder').value = '30';
+        
+        // Use local date (not UTC)
+        const now = new Date();
+        const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        document.getElementById('formEventDate').value = defaultDateStr || localDateStr;
+        
+        // Suggest time 10 minutes in the future for quick scheduling/testing
+        const futureTime = new Date(now.getTime() + 10 * 60 * 1000);
+        const timeStr = `${String(futureTime.getHours()).padStart(2, '0')}:${String(futureTime.getMinutes()).padStart(2, '0')}`;
+        document.getElementById('formEventTime').value = timeStr;
+        document.getElementById('formEventReminder').value = '0'; // default: at event time
     }
 
     modal.classList.add('show');

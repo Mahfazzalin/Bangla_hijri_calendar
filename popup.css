@@ -1639,3 +1639,31 @@ body {
     animation: donationHighlightPulse 1.8s ease-in-out 2;
 }
 
+/* Event Test Notification Button */
+.btn-test-notif {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-test-notif:hover {
+    background: rgba(245, 158, 11, 0.28);
+    border-color: rgba(245, 158, 11, 0.7);
+    transform: translateY(-1px);
+}
+
+.btn-test-notif:active {
+    transform: scale(0.96);
+}
+
+

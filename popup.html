@@ -457,13 +457,23 @@
                 <div class="form-group">
                     <label class="form-label">রিমাইন্ডার নোটিফিকেশন</label>
                     <select class="form-select" id="formEventReminder">
-                        <option value="0">রিমাইন্ডার নেই</option>
+                        <option value="0" selected>ইভেন্টের সময় (সরাসরি অ্যালার্ট)</option>
+                        <option value="1">১ মিনিট আগে (টেস্টিংয়ের জন্য সেরা)</option>
                         <option value="5">৫ মিনিট আগে</option>
+                        <option value="10">১০ মিনিট আগে</option>
                         <option value="15">১৫ মিনিট আগে</option>
-                        <option value="30" selected>৩০ মিনিট আগে</option>
+                        <option value="30">৩০ মিনিট আগে</option>
                         <option value="60">১ ঘণ্টা আগে</option>
                         <option value="1440">১ দিন আগে</option>
+                        <option value="-1">রিমাইন্ডার বন্ধ</option>
                     </select>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: -2px; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--text-secondary);">অ্যালার্ম ও সাউন্ড যাচাই করুন:</span>
+                    <button type="button" class="btn-test-notif" id="btnTestEventNotification" title="নোটিফিকেশন ও অ্যালার্ম সাউন্ড বাজিয়ে দেখুন">
+                        <span>🔔</span> টেস্ট অ্যালার্ট
+                    </button>
                 </div>
 
                 <button type="submit" class="btn-primary-sm" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px; margin-top: 10px;">

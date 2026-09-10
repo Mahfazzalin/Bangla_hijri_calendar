@@ -120,36 +120,156 @@ function setupBadgeAlarm() {
     });
 }
 
+// ==========================================
+// OFFSCREEN AUDIO CHIME MANAGEMENT (MV3)
+// ==========================================
+
+let creatingOffscreenPromise = null;
+
+async function hasOffscreenDocument() {
+    if ('getContexts' in chrome.runtime) {
+        const contexts = await chrome.runtime.getContexts({
+            contextTypes: ['OFFSCREEN_DOCUMENT']
+        });
+        return contexts.length > 0;
+    }
+    return false;
+}
+
+async function playChimeSound() {
+    try {
+        const hasDoc = await hasOffscreenDocument();
+        if (!hasDoc) {
+            if (creatingOffscreenPromise) {
+                await creatingOffscreenPromise;
+            } else {
+                creatingOffscreenPromise = chrome.offscreen.createDocument({
+                    url: 'offscreen.html',
+                    reasons: ['AUDIO_PLAYBACK'],
+                    justification: 'Playing notification chime for calendar event reminder'
+                });
+                await creatingOffscreenPromise;
+                creatingOffscreenPromise = null;
+            }
+        }
+        chrome.runtime.sendMessage({ action: 'play_reminder_chime' }).catch(() => {});
+    } catch (err) {
+        console.warn('Audio chime notice:', err);
+    }
+}
+
+// ==========================================
+// EVENT NOTIFICATION TRIGGER
+// ==========================================
+
+function triggerEventNotification(eventData) {
+    if (!eventData || !eventData.title) return;
+
+    // 1. Play audio chime via offscreen Web Audio
+    playChimeSound();
+
+    // 2. Display desktop notification
+    const notifId = `event_notif_${eventData.id || Date.now()}_${Date.now()}`;
+    const iconPath = chrome.runtime.getURL('icon128.png');
+
+    const notifOptions = {
+        type: 'basic',
+        iconUrl: iconPath,
+        title: `🔔 ${eventData.title}`,
+        message: eventData.description ? `${eventData.description} (সময়: ${eventData.time})` : `ইভেন্টের সময়: ${eventData.time || 'নির্ধারিত সময়'}`,
+        priority: 2,
+        requireInteraction: true,
+        silent: false
+    };
+
+    chrome.notifications.create(notifId, notifOptions, (createdId) => {
+        if (chrome.runtime.lastError) {
+            console.warn('Notification creation error:', chrome.runtime.lastError.message);
+        }
+    });
+}
+
+// Auto-reschedule missing alarms for upcoming events on startup
+function checkPendingEventReminders() {
+    chrome.storage.local.get(['calendarEvents'], (result) => {
+        const events = result.calendarEvents || [];
+        const now = Date.now();
+        events.forEach(ev => {
+            if (!ev.dateTimeMs || ev.reminderMinutes === -1) return;
+            if (ev.dateTimeMs > now) {
+                const alarmName = `event_${ev.id}`;
+                chrome.alarms.get(alarmName, (existingAlarm) => {
+                    if (!existingAlarm) {
+                        const reminderMin = ev.reminderMinutes !== undefined ? ev.reminderMinutes : 0;
+                        const alarmTime = ev.dateTimeMs - (reminderMin * 60 * 1000);
+                        const finalWhen = Math.max(now + 1500, alarmTime);
+                        chrome.alarms.create(alarmName, { when: finalWhen });
+                    }
+                });
+            }
+        });
+    });
+}
+
+// ==========================================
+// LIFECYCLE & ALARM LISTENERS
+// ==========================================
+
 chrome.runtime.onInstalled.addListener(() => {
     updateIcon();
     setupBadgeAlarm();
+    checkPendingEventReminders();
 });
 
 chrome.runtime.onStartup.addListener(() => {
     updateIcon();
     setupBadgeAlarm();
+    checkPendingEventReminders();
 });
 
 // Alarm Listener
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'badge_update_alarm') {
         updateIcon();
+        checkPendingEventReminders();
     } else if (alarm.name.startsWith('event_')) {
-        chrome.storage.local.get([`alarm_${alarm.name}`], (result) => {
-            const eventData = result[`alarm_${alarm.name}`];
+        const storageKey = `alarm_${alarm.name}`;
+        chrome.storage.local.get([storageKey, 'calendarEvents'], (result) => {
+            let eventData = result[storageKey];
+            
+            // Fallback: look up in calendarEvents array by ID
+            if (!eventData && result.calendarEvents) {
+                const eventId = alarm.name.replace('event_', '');
+                eventData = result.calendarEvents.find(e => String(e.id) === eventId);
+            }
+
             if (eventData) {
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'icon128.png',
-                    title: `🔔 ${eventData.title}`,
-                    message: eventData.description || `ইভেন্টের সময়: ${eventData.time}`,
-                    priority: 2
-                });
-                chrome.storage.local.remove([`alarm_${alarm.name}`]);
+                triggerEventNotification(eventData);
+                chrome.storage.local.remove([storageKey]);
             }
         });
     }
 });
 
+// Listen for test notification request from popup
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg && msg.action === 'test_notification') {
+        triggerEventNotification({
+            id: 'test',
+            title: 'টেস্ট নোটিফিকেশন ও রিমাইন্ডার 🔔',
+            description: 'আপনার ক্যালেন্ডার নোটিফিকেশন ও রিমাইন্ডার সাউন্ড সফলভাবে কাজ করছে!',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        sendResponse({ success: true });
+        return true;
+    }
+});
+
+// Dismiss notification on click
+chrome.notifications.onClicked.addListener((notifId) => {
+    chrome.notifications.clear(notifId);
+});
+
 // Update immediately on service worker start
 updateIcon();
+checkPendingEventReminders();
